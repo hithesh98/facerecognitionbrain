@@ -1,6 +1,5 @@
 import './App.css';
 import Navigation from './components/Navigation/Navigation';
-import Clarifai from 'clarifai'
 import Logo from './components/Logo/Logo';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm'
 import Rank from './components/Rank/Rank';
@@ -10,9 +9,7 @@ import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import SignIn from './components/SignIn/SignIn';
 import Register from './components/Register/Register';
 
-const app = new Clarifai.App({
-  apiKey: '2c8b5db4fc574f0983d5c65b488b16ed'
-});
+
 
 const particlesOptions = {
   particles: {
@@ -26,23 +23,25 @@ const particlesOptions = {
   }
 }
 
+const initialState = {
+  input: '',
+  imageURL:'',
+  box: {},
+  route: 'signin',
+  isSignedIn: false,
+  user: {
+    id: '',
+    name: '',
+    email: '',
+    entries: 0,
+    joined: ''
+  }
+}
+
 class App extends Component {
   constructor() {
     super();
-    this.state= {
-      input: '',
-      imageURL:'',
-      box: {},
-      route: 'signin',
-      isSignedIn: false,
-      user: {
-        id: '',
-        name: '',
-        email: '',
-        entries: 0,
-        joined: ''
-      }
-    }
+    this.state=initialState; 
   }
 
   loadUser = (data) => { 
@@ -57,7 +56,7 @@ class App extends Component {
 
   }
   componentDidMount(){
-    fetch('http://localhost:3001')
+    fetch('https://still-shore-19556.herokuapp.com/')
       .then(response => response.json())
       .then(console.log)
   }
@@ -83,11 +82,18 @@ class App extends Component {
    this.setState({input: event.target.value});
   }
   onButtonSubmit = () =>{
-    this.setState({imageURL: this.state.input})
-    app.models.predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
+    this.setState({imageURL: this.state.input});
+    fetch('https://still-shore-19556.herokuapp.com/imagesurl', {
+      method: 'post',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        input: this.state.input
+      })
+    })
+    .then(response => response.json())
     .then((response)=> {
       if(response){
-        fetch('http://localhost:3001/images', {
+        fetch('https://still-shore-19556.herokuapp.com/images', {
           method: 'put',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
@@ -98,6 +104,7 @@ class App extends Component {
           .then(count => {
             this.setState(Object.assign(this.state.user, {entries: count}))
           })
+          .catch(console.log);
       }
       this.displayFaceBox(this.calculateFaceLocation(response))
     }) 
@@ -106,7 +113,8 @@ class App extends Component {
 
   onRouteChange = (route) => {
     if (route === 'signout'){
-      this.setState({isSignedIn: false})
+      this.setState({initialState})
+      this.setState({isSignedIn:false})
     } else if (route === 'home'){
       this.setState({isSignedIn:true})
     }
